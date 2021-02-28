@@ -21,25 +21,29 @@ public class ClientHandler {
                 String msg = "";
                 boolean isAuthorized = false;
                 try {
-
+                    long start = System.currentTimeMillis();
                     while (!isAuthorized && continueChat) {
+                        if ((System.currentTimeMillis() - start) > 120000) {
+                            continueChat = false;
+                            sendMessage("/error timeout");
+                        } else if (in.available() > 0) {
+                            msg = in.readUTF();
+                            if (msg.startsWith("/auth")) {
+                                String[] tokens = msg.split("\\s");
+                                nickname = server.getAuthService().getNicknameByLoginAndPassword(tokens[1], tokens[2]);
+                                if (nickname != null) {
 
-                        msg = in.readUTF();
-                        if (msg.startsWith("/auth")) {
-                            String[] tokens = msg.split("\\s");
-                            nickname = server.getAuthService().getNicknameByLoginAndPassword(tokens[1], tokens[2]);
-                            if (nickname != null) {
-                                isAuthorized = true;
-                                sendMessage("/authok");
-                                server.subscribe(this);
-                            } else {
-                                sendMessage("/error");
+                                    isAuthorized = true;
+                                    sendMessage("/authok");
+                                    server.subscribe(this);
+                                } else {
+                                    sendMessage("/error");
+                                }
+                            }
+                            if (msg.equalsIgnoreCase("/end")) {// клиент решил выйти без авторизации s
+                                continueChat = false;
                             }
                         }
-                        if (msg.equalsIgnoreCase("/end")) {
-                            continueChat = false;
-                        }
-
                     }
 
                     while (continueChat) {
